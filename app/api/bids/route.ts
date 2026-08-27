@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const appUrl = process.env.APP_URL || new URL(request.url).origin;
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
