@@ -12,10 +12,12 @@ export async function GET(request: Request) {
   const supabase = createSupabaseAdminClient();
   let query = supabase
     .from('businesses')
-    .select('id,name,slug,category,description,website,phone,country,country_code,region,city,locality,formatted_address,verification_status,is_active')
+    .select('id,name,slug,category,description,website,phone,country,country_code,region,city,locality,formatted_address,rating,review_count,verification_status,is_active')
     .eq('is_active', true)
     .limit(limit)
     .order('verification_status', { ascending: false })
+    .order('rating', { ascending: false })
+    .order('review_count', { ascending: false })
     .order('name');
 
   if (q) query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
