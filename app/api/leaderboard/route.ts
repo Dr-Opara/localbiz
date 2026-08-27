@@ -42,7 +42,9 @@ export async function GET(request: Request) {
   const { data: businesses, error: businessError } = await businessQuery.limit(200);
   if (businessError) return NextResponse.json({ error: businessError.message }, { status: 400 });
 
-  if (!businesses?.length) return NextResponse.json({ leaderboard: [] });
+  if (!businesses?.length) {
+    return NextResponse.json({ market: { country_code: countryCode || null, country: country || null, city, region: region || null, category }, sponsored: [], organic: [], leaderboard: [] });
+  }
 
   const ids = businesses.map((b) => b.id);
   const now = new Date().toISOString();
@@ -62,15 +64,40 @@ export async function GET(request: Request) {
     if (!bestBid.has(bid.business_id)) bestBid.set(bid.business_id, bid);
   }
 
-  const leaderboard = businesses
-    .map((business) => ({ ...business, bid: bestBid.get(business.id) ?? null }))
-    .filter((entry) => entry.bid)
+  const sponsored = businesses
+    .filter((business) => bestBid.has(business.id))
+    .map((business) => ({ ...business, bid: bestBid.get(business.id)! }))
     .sort((a, b) => {
-      const amount = (b.bid?.amount_cents ?? 0) - (a.bid?.amount_cents ?? 0);
+      const amount = b.bid.amount_cents - a.bid.amount_cents;
       if (amount !== 0) return amount;
-      return new Date(a.bid!.placed_at).getTime() - new Date(b.bid!.placed_at).getTime();
+      return new Date(a.bid.placed_at).getTime() - new Date(b.bid.placed_at).getTime();
     })
-    .map((entry, index) => ({ rank: index + 1, ...entry }));
+    .map((entry, index) => ({ sponsored_rank: index + 1, sponsored: true, ...entry }));
 
-  return NextResponse.json({ leaderboard });
+  const sponsoredIds = new Set(sponsored.map((entry) => entry.id));
+  const organic = businesses
+    .filter((business) => !sponsoredIds.has(business.id))
+    .sort((a, b) => {
+      const verified = Number(b.verification_status === 'verified') - Number(a.verification_status === 'verified');
+      if (verified !== 0) return verified;
+      const rating = Number(b.rating ?? 0) - Number(a.rating ?? 0);
+      if (rating !== 0) return rating;
+      const reviews = Number(b.review_count ?? 0) - Number(a.review_count ?? 0);
+      if (reviews !== 0) return reviews;
+      return a.name.localeCompare(b.name);
+    })
+    .map((entry, index) => ({ organic_rank: index + 1, sponsored: false, bid: null, ...entry }));
+
+  const leaderboard = [
+    ...sponsored.map((entry, index) => ({ position: index + 1, placement_type: 'sponsored' as const, ...entry })),
+    ...organic.map((entry, index) => ({ position: sponsored.length + index + 1, placement_type: 'organic' as const, ...entry })),
+  ];
+
+  return NextResponse.json({
+    market: { country_code: countryCode || null, country: country || null, city, region: region || null, category },
+    disclosure: 'Sponsored positions are ordered by paid bid. Ratings and reviews are independent reputation signals.',
+    sponsored,
+    organic,
+    leaderboard,
+  });
 }
