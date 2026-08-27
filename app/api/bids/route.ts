@@ -6,11 +6,7 @@ export async function GET() {
   const { supabase, user } = await requireUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: businesses } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('owner_id', user.id);
-
+  const { data: businesses } = await supabase.from('businesses').select('id').eq('owner_id', user.id);
   const ids = (businesses ?? []).map((b) => b.id);
   if (!ids.length) return NextResponse.json({ bids: [] });
 
@@ -94,7 +90,7 @@ export async function POST(request: Request) {
         },
       },
     }],
-    success_url: `${appUrl}/dashboard?bid=success`,
+    success_url: `${appUrl}/api/bids/confirm?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/dashboard?bid=cancelled`,
     metadata: {
       localbiz_bid_id: bid.id,
