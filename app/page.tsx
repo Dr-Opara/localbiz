@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="#">BIDSPOT</a>
+        <a className="brand" href="#">LOCALBIZ</a>
         <nav><a href="#rankings">Rankings</a><a href="#how">How it works</a><a href="#business">For businesses</a></nav>
         <a className="button secondary" href="#business">List your business</a>
       </header>
@@ -16,7 +16,7 @@ export default function Home() {
       <section className="hero">
         <div className="eyebrow">LOCAL VISIBILITY, PRICED IN PUBLIC</div>
         <h1>Own the spot<br />people see first.</h1>
-        <p>BidSpot is a transparent sponsored leaderboard for local businesses anywhere in the world. Choose your market, place a bid, and compete for visible placement.</p>
+        <p>LocalBiz is a transparent sponsored leaderboard for local businesses anywhere in the world. Choose your market, place a bid, and compete for visible placement.</p>
         <div className="heroActions"><a className="button" href="#rankings">Explore rankings</a><a className="textLink" href="#business">Start bidding →</a></div>
       </section>
 
@@ -43,7 +43,7 @@ export default function Home() {
       </section>
 
       <section className="how" id="how">
-        <div><span className="eyebrow">HOW BIDSPOT WORKS</span><h2>One market. One ranking. Public bids.</h2></div>
+        <div><span className="eyebrow">HOW LOCALBIZ WORKS</span><h2>One market. One ranking. Public bids.</h2></div>
         <ol><li><b>01</b><span>Choose a location and category.</span></li><li><b>02</b><span>Claim or create your business profile.</span></li><li><b>03</b><span>Place a sponsored placement bid.</span></li><li><b>04</b><span>The highest active bid owns the top sponsored spot.</span></li></ol>
       </section>
 
@@ -51,7 +51,7 @@ export default function Home() {
         <span className="eyebrow">FOR LOCAL BUSINESSES</span><h2>Put your business on the map.</h2><p>Add your business name, country, region or state, city, postal code, full street address, service area, website, phone, hours, services, and verification details. Visitors can see where you are and what you offer before they contact you.</p><a className="button" href="#">Create business profile</a>
       </section>
 
-      <footer><strong>BIDSPOT</strong><span>Transparent sponsored local rankings.</span><span>© 2026 BidSpot</span></footer>
+      <footer><strong>LOCALBIZ</strong><span>Transparent sponsored local rankings.</span><span>© 2026 LocalBiz</span></footer>
     </main>
   );
 }
