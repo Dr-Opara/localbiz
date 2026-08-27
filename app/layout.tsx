@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BidSpot",
+  title: "LocalBiz",
   description: "Transparent sponsored rankings for local businesses around the world.",
 };
 
