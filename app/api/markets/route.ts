@@ -14,12 +14,12 @@ export async function GET(request: Request) {
     .select('*')
     .eq('is_active', true)
     .order('country')
-    .order('city')
+    .order('locality')
     .order('category')
     .limit(limit);
 
   if (country) query = query.ilike('country', country);
-  if (city) query = query.ilike('city', city);
+  if (city) query = query.ilike('locality', city);
   if (category) query = query.ilike('category', category);
 
   const { data, error } = await query;
