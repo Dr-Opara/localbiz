@@ -1,4 +1,4 @@
-# BidSpot
+# localbiz
 
 BidSpot is a global local-business sponsored-ranking marketplace. Businesses compete for transparent sponsored placement within a specific country, region, city, and category while visitors can still review useful business information such as address, ratings, services, hours, verification status, and availability.
 
