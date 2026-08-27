@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth';
+import { syncMarketForBusiness } from '@/lib/markets';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 function slugify(value: string) {
   return value
@@ -35,8 +37,8 @@ export async function POST(request: Request) {
   const countryCode = String(body.country_code ?? '').trim().toUpperCase();
   const city = String(body.city ?? body.locality ?? '').trim();
 
-  if (!name || !category || !country || !city) {
-    return NextResponse.json({ error: 'name, category, country, and city are required' }, { status: 422 });
+  if (!name || !category || !country || !countryCode || !city) {
+    return NextResponse.json({ error: 'name, category, country, country_code, and city are required' }, { status: 422 });
   }
 
   const slugBase = slugify(name) || 'business';
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
     phone: body.phone ?? null,
     email: body.email ?? user.email ?? null,
     country,
-    country_code: countryCode || null,
+    country_code: countryCode,
     region: body.region ?? body.admin_area ?? null,
     admin_area: body.admin_area ?? body.region ?? null,
     city,
@@ -80,6 +82,18 @@ export async function POST(request: Request) {
     .select('*')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error || !data) return NextResponse.json({ error: error?.message ?? 'Could not create business' }, { status: 400 });
+
+  await syncMarketForBusiness(data);
+
+  const admin = createSupabaseAdminClient();
+  await admin.from('audit_logs').insert({
+    actor_id: user.id,
+    action: 'business_created',
+    entity_type: 'business',
+    entity_id: data.id,
+    metadata: { country: data.country, city: data.locality || data.city, category: data.category },
+  });
+
   return NextResponse.json({ business: data }, { status: 201 });
 }
