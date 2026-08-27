@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth';
+import { syncMarketForBusiness } from '@/lib/markets';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 const editableFields = [
   'name','category','description','website','phone','email','country','country_code',
@@ -34,6 +36,17 @@ export async function PATCH(
     .single();
 
   if (error || !data) return NextResponse.json({ error: 'Business not found or update failed' }, { status: 404 });
+
+  await syncMarketForBusiness(data);
+  const admin = createSupabaseAdminClient();
+  await admin.from('audit_logs').insert({
+    actor_id: user.id,
+    action: 'business_updated',
+    entity_type: 'business',
+    entity_id: data.id,
+    metadata: { fields: Object.keys(updates).filter((field) => field !== 'updated_at') },
+  });
+
   return NextResponse.json({ business: data });
 }
 
@@ -54,5 +67,15 @@ export async function DELETE(
     .single();
 
   if (error || !data) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+
+  const admin = createSupabaseAdminClient();
+  await admin.from('audit_logs').insert({
+    actor_id: user.id,
+    action: 'business_deactivated',
+    entity_type: 'business',
+    entity_id: id,
+    metadata: {},
+  });
+
   return NextResponse.json({ business: data });
 }
