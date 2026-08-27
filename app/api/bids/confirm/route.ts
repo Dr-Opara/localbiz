@@ -5,7 +5,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const sessionId = url.searchParams.get('session_id');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+  const appUrl = process.env.APP_URL || url.origin;
 
   if (!sessionId || !process.env.STRIPE_SECRET_KEY) {
     return NextResponse.redirect(`${appUrl}/dashboard?bid=error`);
@@ -22,6 +22,16 @@ export async function GET(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
+  const { data: bid } = await admin
+    .from('bids')
+    .select('id,business_id,amount_cents,currency,status')
+    .eq('id', bidId)
+    .eq('business_id', businessId)
+    .single();
+
+  if (!bid || session.amount_total !== bid.amount_cents || session.currency !== bid.currency) {
+    return NextResponse.redirect(`${appUrl}/dashboard?bid=invalid`);
+  }
 
   await admin
     .from('bids')
@@ -46,6 +56,7 @@ export async function GET(request: Request) {
     entity_type: 'bid',
     entity_id: bidId,
     metadata: {
+      source: 'checkout_return',
       checkout_session_id: session.id,
       business_id: businessId,
       amount_total: session.amount_total,
