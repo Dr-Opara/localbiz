@@ -173,10 +173,10 @@ export default function Home() {
             const query = new URLSearchParams({ country: bid.market.country || '', city: bid.market.city || '', category: bid.market.category || '' });
             return (
               <article className="row" key={bid.id}>
-                <div className="rank">#{index + 1}</div>
+                <div className="rankBlock"><span className="rank">#{index + 1}</span><span className="rankFlag" title={bid.market.country || bid.market.country_code || 'Country'}>{flagEmoji(bid.market.country_code)}</span></div>
                 <BusinessLogo name={bid.business.name} website={bid.business.website} />
-                <div className="business"><span className="sponsored">SPONSORED</span><h3>{bid.business.name}</h3><p>{bid.market.city}{bid.market.region ? `, ${bid.market.region}` : ''} · <span className="countryFlag" title={bid.market.country || bid.market.country_code || 'Country'}>{flagEmoji(bid.market.country_code)}</span> · {bid.market.category}</p></div>
-                <div className="rating"><strong>{bid.business.verification_status === 'verified' ? 'Verified' : 'New listing'}</strong><span>{bid.business.review_count || 0} reviews</span></div>
+                <div className="business"><span className="sponsored">SPONSORED</span><h3>{bid.business.name}</h3><p>{bid.market.city}{bid.market.region ? `, ${bid.market.region}` : ''} · {bid.market.category}</p></div>
+                <div className="rating"><strong>{bid.business.verification_status === 'verified' ? 'Verified business' : 'New listing'}</strong><span>{bid.business.verification_status === 'verified' ? 'Business identity confirmed' : 'Business profile'}</span></div>
                 <div className="bid"><span>Current bid</span><strong>{bidMoney}</strong></div>
                 <a className="button small" href={`/leaderboard?${query.toString()}`}>View market</a>
               </article>
