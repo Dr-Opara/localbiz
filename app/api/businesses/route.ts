@@ -12,6 +12,17 @@ function slugify(value: string) {
     .slice(0, 70);
 }
 
+function normalizeWebsite(value: unknown) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    return new URL(withProtocol).toString().replace(/\/$/, '');
+  } catch {
+    throw new Error('Enter a valid website such as expensemargin.com or www.expensemargin.com');
+  }
+}
+
 export async function GET() {
   const { supabase, user } = await requireUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -41,6 +52,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'name, category, country, country_code, and city are required' }, { status: 422 });
   }
 
+  let website: string | null = null;
+  try {
+    website = normalizeWebsite(body.website);
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid website' }, { status: 422 });
+  }
+
   const slugBase = slugify(name) || 'business';
   const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -50,7 +68,7 @@ export async function POST(request: Request) {
     slug,
     category,
     description: body.description ?? null,
-    website: body.website ?? null,
+    website,
     phone: body.phone ?? null,
     email: body.email ?? user.email ?? null,
     country,
