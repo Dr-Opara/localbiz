@@ -8,16 +8,16 @@ export default function Home() {
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="#">LOCALBIZ</a>
-        <nav><a href="#rankings">Rankings</a><a href="#how">How it works</a><a href="#business">For businesses</a></nav>
-        <a className="button secondary" href="#business">List your business</a>
+        <a className="brand" href="/">LOCALBIZ</a>
+        <nav><a href="#rankings">Rankings</a><a href="#how">How it works</a><a href="#business">For businesses</a><a href="/login">Sign in</a></nav>
+        <a className="button secondary" href="/signup">List your business</a>
       </header>
 
       <section className="hero">
         <div className="eyebrow">LOCAL VISIBILITY, PRICED IN PUBLIC</div>
         <h1>Own the spot<br />people see first.</h1>
         <p>LocalBiz is a transparent sponsored leaderboard for local businesses anywhere in the world. Choose your market, place a bid, and compete for visible placement.</p>
-        <div className="heroActions"><a className="button" href="#rankings">Explore rankings</a><a className="textLink" href="#business">Start bidding →</a></div>
+        <div className="heroActions"><a className="button" href="#rankings">Explore rankings</a><a className="textLink" href="/signup">Start bidding →</a></div>
       </section>
 
       <section className="searchBar" id="rankings">
@@ -48,7 +48,7 @@ export default function Home() {
       </section>
 
       <section className="businessSection" id="business">
-        <span className="eyebrow">FOR LOCAL BUSINESSES</span><h2>Put your business on the map.</h2><p>Add your business name, country, region or state, city, postal code, full street address, service area, website, phone, hours, services, and verification details. Visitors can see where you are and what you offer before they contact you.</p><a className="button" href="#">Create business profile</a>
+        <span className="eyebrow">FOR LOCAL BUSINESSES</span><h2>Put your business on the map.</h2><p>Add your business name, country, region or state, city, postal code, full street address, service area, website, phone, hours, services, and verification details. Visitors can see where you are and what you offer before they contact you.</p><a className="button" href="/signup">Create business profile</a>
       </section>
 
       <footer><strong>LOCALBIZ</strong><span>Transparent sponsored local rankings.</span><span>© 2026 LocalBiz</span></footer>
