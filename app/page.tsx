@@ -29,6 +29,7 @@ export default function Home() {
   const [bids, setBids] = useState<LiveBid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [online, setOnline] = useState(0);
 
   async function loadLiveBids() {
     try {
@@ -44,10 +45,34 @@ export default function Home() {
     }
   }
 
+  async function heartbeat() {
+    try {
+      let visitorId = window.localStorage.getItem('localbiz_visitor_id');
+      if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        window.localStorage.setItem('localbiz_visitor_id', visitorId);
+      }
+      const response = await fetch('/api/presence', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ visitor_id: visitorId }),
+      });
+      const json = await response.json();
+      if (response.ok) setOnline(Number(json.online || 0));
+    } catch {
+      // Presence is informational only; never block the public leaderboard.
+    }
+  }
+
   useEffect(() => {
     loadLiveBids();
-    const timer = window.setInterval(loadLiveBids, 15000);
-    return () => window.clearInterval(timer);
+    heartbeat();
+    const bidsTimer = window.setInterval(loadLiveBids, 15000);
+    const presenceTimer = window.setInterval(heartbeat, 60000);
+    return () => {
+      window.clearInterval(bidsTimer);
+      window.clearInterval(presenceTimer);
+    };
   }, []);
 
   const topBid = bids[0]?.amount_cents ?? 0;
@@ -69,19 +94,52 @@ export default function Home() {
     window.location.href = `/leaderboard?${query.toString()}`;
   }
 
+  function claimRank(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const website = String(form.get('website') || '').trim();
+    const category = String(form.get('claim_category') || '').trim();
+    if (!website || !category) return;
+    const query = new URLSearchParams({ website, category, intent: 'claim-rank' });
+    window.location.href = `/signup?${query.toString()}`;
+  }
+
+  const claimAmount = topBid ? money.format(topBid / 100 + 1) : money.format(1);
+
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="/">LOCALBIZ</a>
+        <div className="brandCluster">
+          <a className="brand" href="/">LOCALBIZ</a>
+          <div className="livePill"><span className="liveDot" />{online || 1} online</div>
+        </div>
         <nav><a href="#rankings">Live bids</a><a href="#how">How it works</a><a href="#business">For businesses</a><a href="/login">Sign in</a></nav>
         <a className="button secondary" href="/signup">List your business</a>
       </header>
 
-      <section className="hero">
+      <section className="hero compactHero">
         <div className="eyebrow">LIVE SPONSORED RANKINGS</div>
-        <h1>See who owns<br />the top spot.</h1>
-        <p>LocalBiz makes sponsored placement public. Anyone can see active bids and rankings without signing in. Business owners only need an account when they want to compete.</p>
-        <div className="heroActions"><a className="button" href="#rankings">View live bids</a><a className="textLink" href="/signup">Place a bid →</a></div>
+        <div className="claimHeadline">Claim #1 for <strong>{claimAmount}</strong></div>
+        <form className="claimBar" onSubmit={claimRank}>
+          <label className="claimUrl"><span>◉</span><input name="website" placeholder="Your business URL" required /></label>
+          <label className="claimCategory">
+            <input name="claim_category" list="localbiz-categories" placeholder="Choose a category" required />
+            <datalist id="localbiz-categories">
+              <option value="Business Software / Financial Technology" />
+              <option value="Plumber" />
+              <option value="Restaurant" />
+              <option value="Urgent Care" />
+              <option value="Grocery Market" />
+              <option value="HVAC" />
+              <option value="Dental" />
+              <option value="Auto Repair" />
+              <option value="Cleaning Service" />
+              <option value="Real Estate" />
+            </datalist>
+          </label>
+          <button className="button claimButton" type="submit">Claim LocalBiz rank</button>
+        </form>
+        <p className="claimSub">Public bids. Live ranking. No sign-in required to browse.</p>
       </section>
 
       <section className="leaderboard" id="rankings">
@@ -139,7 +197,11 @@ export default function Home() {
         <span className="eyebrow">FOR LOCAL BUSINESSES</span><h2>Want the top spot?</h2><p>Your market is public. Your bid is transparent. If another business outbids you, the ranking changes live.</p><a className="button" href="/signup">Create business profile</a>
       </section>
 
-      <footer><strong>LOCALBIZ</strong><span>Transparent sponsored local rankings.</span><span>© 2026 LocalBiz</span></footer>
+      <footer className="siteFooter">
+        <div><strong>LOCALBIZ</strong><span>Transparent sponsored local rankings.</span></div>
+        <div className="footerLinks"><a href="#how">Rules</a><a href="#business">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></div>
+        <div>Built by <a className="footerCredit" href="https://theboringproduct.com" target="_blank" rel="noreferrer">The Boring Product</a></div>
+      </footer>
     </main>
   );
 }
