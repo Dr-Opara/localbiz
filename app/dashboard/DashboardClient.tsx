@@ -13,6 +13,7 @@ type Business = {
   country: string;
   country_code?: string;
   currency?: string;
+  website?: string | null;
   verification_status?: string;
 };
 type Bid = { id: string; business_id: string; amount_cents: number; currency: string; status: string; placed_at: string };
@@ -24,10 +25,14 @@ type DashboardData = {
   summary: { business_count: number; active_bid_count: number; pending_bid_count: number };
 };
 
+type MinimumBid = { highest_bid_cents: number; minimum_bid_cents: number; currency: string };
+
 export default function DashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState('');
+  const [minimumBid, setMinimumBid] = useState<MinimumBid | null>(null);
 
   async function load() {
     const response = await fetch('/api/dashboard', { cache: 'no-store' });
@@ -38,6 +43,18 @@ export default function DashboardClient() {
     const json = await response.json();
     if (!response.ok) throw new Error(json.error || 'Could not load dashboard');
     setData(json);
+    setSelectedBusinessId((current) => current || json.businesses?.[0]?.id || '');
+  }
+
+  async function loadMinimumBid(businessId: string) {
+    if (!businessId) {
+      setMinimumBid(null);
+      return;
+    }
+    const response = await fetch(`/api/bids/minimum?business_id=${encodeURIComponent(businessId)}`, { cache: 'no-store' });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Could not load current market bid');
+    setMinimumBid(json);
   }
 
   useEffect(() => {
@@ -49,6 +66,11 @@ export default function DashboardClient() {
     load().catch((error) => setMessage(error.message));
   }, []);
 
+  useEffect(() => {
+    if (!selectedBusinessId) return;
+    loadMinimumBid(selectedBusinessId).catch((error) => setMessage(error.message));
+  }, [selectedBusinessId]);
+
   const businessMap = useMemo(() => new Map((data?.businesses || []).map((b) => [b.id, b])), [data]);
   const activeBids = useMemo(() => (data?.bids || []).filter((bid) => bid.status === 'active'), [data]);
 
@@ -56,7 +78,7 @@ export default function DashboardClient() {
     const business = businessMap.get(bid.business_id);
     if (!business) return '/leaderboard';
     const params = new URLSearchParams({
-      country_code: business.country_code || 'US',
+      country_code: business.country_code || '',
       city: business.locality || business.city,
       category: business.category,
     });
@@ -83,6 +105,7 @@ export default function DashboardClient() {
       if (!response.ok) throw new Error(json.error || 'Could not create business');
       formElement.reset();
       await load();
+      setSelectedBusinessId(json.business?.id || '');
       setMessage('Business profile created. Step 2 is ready — place your sponsored bid.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not create business');
@@ -98,15 +121,25 @@ export default function DashboardClient() {
     const form = new FormData(event.currentTarget);
     const dollars = Number(form.get('amount_dollars'));
     const businessId = String(form.get('business_id') || '');
+    const minimumDollars = (minimumBid?.minimum_bid_cents ?? 100) / 100;
     try {
-      if (!businessId || !Number.isFinite(dollars) || dollars < 1) throw new Error('Choose a business and enter a bid of at least $1.');
+      if (!businessId || !Number.isFinite(dollars) || dollars < minimumDollars) {
+        throw new Error(`Choose a business and enter a bid of at least $${minimumDollars.toFixed(2)}.`);
+      }
       const response = await fetch('/api/bids', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ business_id: businessId, amount_cents: Math.round(dollars * 100) }),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error || 'Could not start checkout');
+      if (!response.ok) {
+        if (json.minimum_bid_cents) setMinimumBid((current) => ({
+          highest_bid_cents: json.highest_bid_cents ?? json.minimum_bid_cents,
+          minimum_bid_cents: json.minimum_bid_cents,
+          currency: current?.currency || 'usd',
+        }));
+        throw new Error(json.error || 'Could not start checkout');
+      }
       if (!json.checkout_url) throw new Error('Stripe checkout URL was not returned.');
       window.location.href = json.checkout_url;
     } catch (error) {
@@ -114,6 +147,9 @@ export default function DashboardClient() {
       setBusy(false);
     }
   }
+
+  const minimumDollars = (minimumBid?.minimum_bid_cents ?? 100) / 100;
+  const highestDollars = (minimumBid?.highest_bid_cents ?? 0) / 100;
 
   return (
     <main className="dashboardPage">
@@ -160,11 +196,11 @@ export default function DashboardClient() {
           <h2>Create business profile</h2>
           <form className="formStack" onSubmit={createBusiness}>
             <label>Business name<input name="name" required /></label>
-            <label>Category<input name="category" placeholder="Plumber" required /></label>
-            <div className="formTwo"><label>Country<input name="country" defaultValue="United States" required /></label><label>Country code<input name="country_code" defaultValue="US" maxLength={2} required /></label></div>
-            <div className="formTwo"><label>State / region<input name="region" defaultValue="Texas" /></label><label>City<input name="city" defaultValue="Houston" required /></label></div>
-            <label>Website<input name="website" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" placeholder="expensemargin.com or www.expensemargin.com" /></label>
-            <label>Phone<input name="phone" /></label>
+            <label>Category<input name="category" placeholder="Enter business category" required /></label>
+            <div className="formTwo"><label>Country<input name="country" placeholder="Enter country" required /></label><label>Country code<input name="country_code" placeholder="US" maxLength={2} required /></label></div>
+            <div className="formTwo"><label>State / region<input name="region" placeholder="Enter state or region" /></label><label>City<input name="city" placeholder="Enter city" required /></label></div>
+            <label>Website<input name="website" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" placeholder="Enter your business website" /></label>
+            <label>Phone<input name="phone" placeholder="Enter business phone" /></label>
             <input name="currency" type="hidden" value="usd" />
             <button className="button" disabled={busy} type="submit">{busy ? 'Creating…' : 'Create business'}</button>
           </form>
@@ -175,8 +211,9 @@ export default function DashboardClient() {
           <h2>Place sponsored bid</h2>
           {data?.businesses.length ? (
             <form className="formStack" onSubmit={placeBid}>
-              <label>Business<select name="business_id" required>{data.businesses.map((business) => <option key={business.id} value={business.id}>{business.name} — {business.city}</option>)}</select></label>
-              <label>Bid amount (USD)<input name="amount_dollars" type="number" min="1" step="1" defaultValue="1" required /></label>
+              <label>Business<select name="business_id" required value={selectedBusinessId} onChange={(event) => setSelectedBusinessId(event.target.value)}>{data.businesses.map((business) => <option key={business.id} value={business.id}>{business.name} — {business.city}</option>)}</select></label>
+              <label>Bid amount (USD)<input name="amount_dollars" type="number" min={minimumDollars} step="1" defaultValue={minimumDollars} key={`${selectedBusinessId}-${minimumDollars}`} required /></label>
+              <p className="muted">{highestDollars > 0 ? `Current highest bid: $${highestDollars.toFixed(2)}. Your bid must be $${minimumDollars.toFixed(2)} or higher.` : `Minimum bid: $${minimumDollars.toFixed(2)}.`}</p>
               <p className="muted">You will be redirected to Stripe Checkout. Your bid becomes active only after Stripe confirms payment.</p>
               <button className="button" disabled={busy} type="submit">Continue to Stripe</button>
             </form>
