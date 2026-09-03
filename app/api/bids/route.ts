@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const amountCents = Number(body.amount_cents ?? 0);
 
   if (!businessId || !Number.isInteger(amountCents) || amountCents < 100) {
-    return NextResponse.json({ error: 'business_id and a bid of at least 100 minor units are required' }, { status: 422 });
+    return NextResponse.json({ error: 'Choose a business and enter a bid of at least $1.' }, { status: 422 });
   }
 
   const { data: business, error: businessError } = await supabase
@@ -47,8 +47,55 @@ export async function POST(request: Request) {
   const currency = String(body.currency ?? business.currency ?? 'usd').toLowerCase();
   const city = business.locality || business.city;
   const region = business.admin_area || business.region;
-
   const admin = createSupabaseAdminClient();
+
+  let marketQuery = admin
+    .from('businesses')
+    .select('id')
+    .eq('is_active', true)
+    .ilike('category', business.category)
+    .or(`city.ilike.${city},locality.ilike.${city}`);
+
+  marketQuery = business.country_code
+    ? marketQuery.eq('country_code', business.country_code)
+    : marketQuery.ilike('country', business.country);
+
+  if (region) marketQuery = marketQuery.or(`region.ilike.${region},admin_area.ilike.${region}`);
+
+  const { data: marketBusinesses, error: marketError } = await marketQuery.limit(500);
+  if (marketError) return NextResponse.json({ error: marketError.message }, { status: 400 });
+
+  const marketBusinessIds = (marketBusinesses ?? []).map((entry) => entry.id);
+  let highestBidCents = 0;
+
+  if (marketBusinessIds.length) {
+    const now = new Date().toISOString();
+    const { data: highestBid, error: highestBidError } = await admin
+      .from('bids')
+      .select('amount_cents')
+      .in('business_id', marketBusinessIds)
+      .eq('status', 'active')
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order('amount_cents', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (highestBidError) return NextResponse.json({ error: highestBidError.message }, { status: 400 });
+    highestBidCents = Number(highestBid?.amount_cents || 0);
+  }
+
+  const minimumBidCents = Math.max(100, highestBidCents);
+  if (amountCents < minimumBidCents) {
+    return NextResponse.json(
+      {
+        error: `The current highest bid in this market is $${(highestBidCents / 100).toFixed(2)}. Your bid must be at least $${(minimumBidCents / 100).toFixed(2)}.`,
+        highest_bid_cents: highestBidCents,
+        minimum_bid_cents: minimumBidCents,
+      },
+      { status: 409 }
+    );
+  }
+
   const { data: bid, error: bidError } = await admin
     .from('bids')
     .insert({
@@ -79,10 +126,6 @@ export async function POST(request: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const appUrl = process.env.APP_URL || new URL(request.url).origin;
 
-    // LocalBiz is selling its own sponsored placement service. Stripe Managed
-    // Payments is enabled at the account level, but this checkout does not use
-    // that product and therefore opts out for this session. This avoids Stripe
-    // requiring a Managed Payments product tax code for the inline bid product.
     const sessionParams: Stripe.Checkout.SessionCreateParams & {
       managed_payments?: { enabled: boolean };
     } = {
