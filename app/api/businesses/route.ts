@@ -19,7 +19,7 @@ function normalizeWebsite(value: unknown) {
   try {
     return new URL(withProtocol).toString().replace(/\/$/, '');
   } catch {
-    throw new Error('Enter a valid website such as expensemargin.com or www.expensemargin.com');
+    throw new Error('Enter a valid website such as yourbusiness.com or www.yourbusiness.com');
   }
 }
 
