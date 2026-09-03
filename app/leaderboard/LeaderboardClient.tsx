@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import BusinessLogo from '../components/BusinessLogo';
 
 type Entry = {
   id: string;
@@ -60,47 +61,23 @@ export default function LeaderboardClient() {
 
   return (
     <main>
-      <header className="topbar">
-        <a className="brand" href="/">LOCALBIZ</a>
-        <nav><a href="/dashboard">Owner dashboard</a></nav>
-        <a className="button secondary" href="/signup">List your business</a>
-      </header>
-
-      <section className="dashboardHero">
-        <span className="eyebrow">LIVE MARKET LEADERBOARD</span>
-        <h1>{category}<br />in {city}.</h1>
-        <p>{region ? `${city}, ${region}` : city} · {country}</p>
-        {bidSuccess ? <div className="notice">Payment confirmed. Your sponsored bid is active on this leaderboard.</div> : null}
-      </section>
-
+      <header className="topbar"><a className="brand" href="/">LOCALBIZ</a><nav><a href="/">Live bids</a><a href="/dashboard">Owner dashboard</a></nav><a className="button secondary" href="/signup">List your business</a></header>
+      <section className="dashboardHero"><span className="eyebrow">LIVE MARKET LEADERBOARD</span><h1>{category}<br />in {city}.</h1><p>{region ? `${city}, ${region}` : city} · {country}</p>{bidSuccess ? <div className="notice">Payment confirmed. Your sponsored bid is active on this leaderboard.</div> : null}</section>
       <section className="leaderboard">
-        <div className="sectionHead">
-          <div><span className="eyebrow">ACTIVE RANKINGS</span><h2>Sponsored first. Organic after.</h2></div>
-          <p>{data?.disclosure || 'Sponsored positions are ordered by paid bid.'}</p>
-        </div>
-
+        <div className="sectionHead"><div><span className="eyebrow">ACTIVE RANKINGS</span><h2>Sponsored first. Organic after.</h2></div><p>{data?.disclosure || 'Sponsored positions are ordered by paid bid.'}</p></div>
         {loading ? <p className="muted">Loading live leaderboard…</p> : null}
         {error ? <div className="notice">{error}</div> : null}
         {!loading && !error && !data?.leaderboard.length ? <p className="muted">No businesses are ranked in this market yet.</p> : null}
-
         <div className="rows">
           {(data?.leaderboard || []).map((entry) => {
             const isHighlighted = highlight && entry.id === highlight;
             return (
               <article className={`row ${isHighlighted ? 'highlightRow' : ''}`} key={entry.id}>
                 <div className="rank">#{entry.position}</div>
-                <div className="business">
-                  <span className={entry.placement_type === 'sponsored' ? 'sponsored' : 'organicLabel'}>
-                    {entry.placement_type === 'sponsored' ? 'SPONSORED' : 'ORGANIC'}
-                  </span>
-                  <h3>{entry.name}</h3>
-                  <p>{entry.category} · {entry.locality || entry.city}, {entry.region || entry.country}</p>
-                </div>
+                <BusinessLogo name={entry.name} website={entry.website} />
+                <div className="business"><span className={entry.placement_type === 'sponsored' ? 'sponsored' : 'organicLabel'}>{entry.placement_type === 'sponsored' ? 'SPONSORED' : 'ORGANIC'}</span><h3>{entry.name}</h3><p>{entry.category} · {entry.locality || entry.city}, {entry.region || entry.country}</p></div>
                 <div className="rating"><strong>{entry.rating ? `★ ${entry.rating}` : 'New'}</strong><span>{entry.review_count || 0} reviews</span></div>
-                <div className="bid">
-                  <span>{entry.placement_type === 'sponsored' ? 'Current bid' : 'Placement'}</span>
-                  <strong>{entry.bid ? `$${(entry.bid.amount_cents / 100).toFixed(2)}` : 'Organic'}</strong>
-                </div>
+                <div className="bid"><span>{entry.placement_type === 'sponsored' ? 'Current bid' : 'Placement'}</span><strong>{entry.bid ? `$${(entry.bid.amount_cents / 100).toFixed(2)}` : 'Organic'}</strong></div>
                 {entry.website ? <a className="button small" href={entry.website} target="_blank" rel="noreferrer">Visit business</a> : <span />}
               </article>
             );
