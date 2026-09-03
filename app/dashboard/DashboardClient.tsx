@@ -2,7 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-type Business = { id: string; name: string; category: string; city: string; country: string; currency?: string; verification_status?: string };
+type Business = {
+  id: string;
+  name: string;
+  category: string;
+  city: string;
+  locality?: string;
+  region?: string;
+  admin_area?: string;
+  country: string;
+  country_code?: string;
+  currency?: string;
+  verification_status?: string;
+};
 type Bid = { id: string; business_id: string; amount_cents: number; currency: string; status: string; placed_at: string };
 
 type DashboardData = {
@@ -37,7 +49,22 @@ export default function DashboardClient() {
     load().catch((error) => setMessage(error.message));
   }, []);
 
-  const businessMap = useMemo(() => new Map((data?.businesses || []).map((b) => [b.id, b.name])), [data]);
+  const businessMap = useMemo(() => new Map((data?.businesses || []).map((b) => [b.id, b])), [data]);
+  const activeBids = useMemo(() => (data?.bids || []).filter((bid) => bid.status === 'active'), [data]);
+
+  function leaderboardHref(bid: Bid) {
+    const business = businessMap.get(bid.business_id);
+    if (!business) return '/leaderboard';
+    const params = new URLSearchParams({
+      country_code: business.country_code || 'US',
+      city: business.locality || business.city,
+      category: business.category,
+    });
+    const region = business.admin_area || business.region;
+    if (region) params.set('region', region);
+    params.set('highlight', business.id);
+    return `/leaderboard?${params.toString()}`;
+  }
 
   async function createBusiness(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,7 +119,7 @@ export default function DashboardClient() {
     <main className="dashboardPage">
       <header className="topbar">
         <a className="brand" href="/">LOCALBIZ</a>
-        <nav><a href="/">Public rankings</a></nav>
+        <nav><a href="/leaderboard">Public rankings</a></nav>
         <form action="/api/auth/signout" method="post"><button className="button secondary" type="submit">Sign out</button></form>
       </header>
 
@@ -108,6 +135,24 @@ export default function DashboardClient() {
         <div><span>Active bids</span><strong>{data?.summary.active_bid_count ?? 0}</strong></div>
         <div><span>Pending bids</span><strong>{data?.summary.pending_bid_count ?? 0}</strong></div>
       </section>
+
+      {activeBids.length ? (
+        <section className="panel widePanel">
+          <span className="eyebrow">ACTIVE SPONSORED PLACEMENT</span>
+          <div className="simpleList">
+            {activeBids.map((bid) => {
+              const business = businessMap.get(bid.business_id);
+              return (
+                <div key={bid.id}>
+                  <strong>{business?.name || 'Business'} — ${(bid.amount_cents / 100).toFixed(2)} active bid</strong>
+                  <span>{business ? `${business.category} · ${business.locality || business.city}, ${business.admin_area || business.region || ''} ${business.country}` : 'Active sponsored placement'}</span>
+                  <a className="button small" href={leaderboardHref(bid)}>View active leaderboard</a>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section className="dashboardGrid">
         <article className="panel">
@@ -149,7 +194,7 @@ export default function DashboardClient() {
         </div>
         <div className="simpleList">
           {(data?.bids || []).map((bid) => (
-            <div key={bid.id}><strong>{businessMap.get(bid.business_id) || 'Business'} — ${(bid.amount_cents / 100).toFixed(2)}</strong><span>{bid.status} · {new Date(bid.placed_at).toLocaleString()}</span></div>
+            <div key={bid.id}><strong>{businessMap.get(bid.business_id)?.name || 'Business'} — ${(bid.amount_cents / 100).toFixed(2)}</strong><span>{bid.status} · {new Date(bid.placed_at).toLocaleString()}</span></div>
           ))}
         </div>
       </section>
