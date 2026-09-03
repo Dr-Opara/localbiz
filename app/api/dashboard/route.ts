@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export async function GET() {
   const { supabase, user } = await requireUser();
@@ -16,7 +17,11 @@ export async function GET() {
 
   let bids: any[] = [];
   if (ids.length) {
-    const { data, error } = await supabase
+    // Ownership is established above with the signed-in user's scoped client.
+    // Read the owner's bid records through the trusted server client so the
+    // dashboard consistently reflects webhook-activated and failed bids.
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin
       .from('bids')
       .select('*')
       .in('business_id', ids)
