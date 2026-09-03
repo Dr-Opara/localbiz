@@ -41,9 +41,10 @@ export default function DashboardClient() {
 
   async function createBusiness(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setBusy(true);
     setMessage('');
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const body = Object.fromEntries(form.entries());
     try {
       const response = await fetch('/api/businesses', {
@@ -53,9 +54,9 @@ export default function DashboardClient() {
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || 'Could not create business');
-      event.currentTarget.reset();
-      setMessage('Business profile created. You can place a sponsored bid now.');
+      formElement.reset();
       await load();
+      setMessage('Business profile created. Step 2 is ready — place your sponsored bid.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not create business');
     } finally {
@@ -117,10 +118,10 @@ export default function DashboardClient() {
             <label>Category<input name="category" placeholder="Plumber" required /></label>
             <div className="formTwo"><label>Country<input name="country" defaultValue="United States" required /></label><label>Country code<input name="country_code" defaultValue="US" maxLength={2} required /></label></div>
             <div className="formTwo"><label>State / region<input name="region" defaultValue="Texas" /></label><label>City<input name="city" defaultValue="Houston" required /></label></div>
-            <label>Website<input name="website" type="url" placeholder="https://" /></label>
+            <label>Website<input name="website" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" placeholder="expensemargin.com or www.expensemargin.com" /></label>
             <label>Phone<input name="phone" /></label>
             <input name="currency" type="hidden" value="usd" />
-            <button className="button" disabled={busy} type="submit">Create business</button>
+            <button className="button" disabled={busy} type="submit">{busy ? 'Creating…' : 'Create business'}</button>
           </form>
         </article>
 
