@@ -48,9 +48,6 @@ export async function POST(request: Request) {
   const city = business.locality || business.city;
   const region = business.admin_area || business.region;
 
-  // Ownership is verified above with the signed-in user's RLS-scoped client.
-  // Use the server-only admin client for the pending bid insert because bids are
-  // intentionally not directly insertable by browser/user clients.
   const admin = createSupabaseAdminClient();
   const { data: bid, error: bidError } = await admin
     .from('bids')
@@ -82,9 +79,16 @@ export async function POST(request: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const appUrl = process.env.APP_URL || new URL(request.url).origin;
 
-    const session = await stripe.checkout.sessions.create({
+    // LocalBiz is selling its own sponsored placement service. Stripe Managed
+    // Payments is enabled at the account level, but this checkout does not use
+    // that product and therefore opts out for this session. This avoids Stripe
+    // requiring a Managed Payments product tax code for the inline bid product.
+    const sessionParams: Stripe.Checkout.SessionCreateParams & {
+      managed_payments?: { enabled: boolean };
+    } = {
       mode: 'payment',
       customer_email: user.email ?? undefined,
+      managed_payments: { enabled: false },
       line_items: [{
         quantity: 1,
         price_data: {
@@ -103,7 +107,9 @@ export async function POST(request: Request) {
         business_id: business.id,
         owner_id: user.id,
       },
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     if (!session.url) {
       await admin.from('bids').update({ status: 'failed' }).eq('id', bid.id).eq('status', 'pending');
