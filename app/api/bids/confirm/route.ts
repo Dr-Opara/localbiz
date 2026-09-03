@@ -34,8 +34,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${appUrl}/dashboard?bid=invalid`);
     }
 
-    const paymentIntentId =
-      typeof session.payment_intent === 'string' ? session.payment_intent : null;
+    const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
 
     const { data: activationResult, error: activationError } = await admin.rpc('activate_paid_bid', {
       p_bid_id: bidId,
@@ -64,6 +63,25 @@ export async function GET(request: Request) {
     }
 
     if (activationResult === 'activated' || activationResult === 'already_active') {
+      const { data: business } = await admin
+        .from('businesses')
+        .select('id,country,country_code,region,admin_area,city,locality,category')
+        .eq('id', businessId)
+        .single();
+
+      if (business) {
+        const params = new URLSearchParams({
+          country_code: business.country_code || '',
+          country: business.country || '',
+          city: business.locality || business.city || '',
+          region: business.admin_area || business.region || '',
+          category: business.category || '',
+          business_id: business.id,
+          bid: 'success',
+        });
+        return NextResponse.redirect(`${appUrl}/leaderboard?${params.toString()}`);
+      }
+
       return NextResponse.redirect(`${appUrl}/dashboard?bid=success`);
     }
 
