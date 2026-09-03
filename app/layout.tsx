@@ -17,6 +17,11 @@ export const metadata: Metadata = {
     "small business advertising",
     "local marketing",
   ],
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   alternates: {
     canonical: "/",
   },
@@ -58,6 +63,38 @@ const structuredData = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        <style>{`
+          .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .brand::before {
+            content: "LB";
+            display: inline-grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: #cf674f;
+            color: #fffdf9;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            flex: 0 0 auto;
+          }
+          @media (max-width: 600px) {
+            .brand::before {
+              width: 30px;
+              height: 30px;
+              border-radius: 8px;
+              font-size: 10px;
+            }
+          }
+        `}</style>
+      </head>
       <body>
         <script
           type="application/ld+json"
