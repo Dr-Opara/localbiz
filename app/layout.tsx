@@ -18,9 +18,12 @@ export const metadata: Metadata = {
     "local marketing",
   ],
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/localbiz-logo.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/localbiz-logo.png",
+    apple: "/localbiz-logo.png",
   },
   alternates: {
     canonical: "/",
@@ -32,12 +35,21 @@ export const metadata: Metadata = {
     title: "LocalBiz — Sponsored Local Business Rankings",
     description:
       "Compete for sponsored visibility in your city and category with transparent paid rankings.",
+    images: [
+      {
+        url: "/localbiz-logo.png",
+        width: 512,
+        height: 512,
+        alt: "LocalBiz logo",
+      },
+    ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "LocalBiz — Sponsored Local Business Rankings",
     description:
       "Compete for sponsored visibility in your city and category with transparent paid rankings.",
+    images: ["/localbiz-logo.png"],
   },
   robots: {
     index: true,
@@ -50,6 +62,7 @@ const structuredData = {
   "@type": "WebApplication",
   name: "LocalBiz",
   url: "https://localbiz.lol",
+  image: "https://localbiz.lol/localbiz-logo.png",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
